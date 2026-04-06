@@ -14,7 +14,28 @@ if (!fs.existsSync(ARQUIVO)) {
   fs.writeFileSync(ARQUIVO, '[]')
 }
 
-// Rota de login — salva email e senha no arquivo
+// Rota de cadastro — cria um novo usuário
+app.post('/cadastro', (req, res) => {
+  const { email, senha } = req.body
+
+  if (!email || !senha) {
+    return res.status(400).json({ mensagem: 'Email e senha são obrigatórios.' })
+  }
+
+  const usuarios = JSON.parse(fs.readFileSync(ARQUIVO))
+
+  const jaExiste = usuarios.find(u => u.email === email)
+  if (jaExiste) {
+    return res.status(400).json({ mensagem: 'Email já cadastrado.' })
+  }
+
+  usuarios.push({ email, senha, data: new Date().toISOString() })
+  fs.writeFileSync(ARQUIVO, JSON.stringify(usuarios, null, 2))
+
+  res.json({ mensagem: 'Cadastro realizado com sucesso!' })
+})
+
+// Rota de login — verifica se email e senha batem
 app.post('/login', (req, res) => {
   const { email, senha } = req.body
 
@@ -24,11 +45,9 @@ app.post('/login', (req, res) => {
 
   const usuarios = JSON.parse(fs.readFileSync(ARQUIVO))
 
-  // Salva somente se ainda não existe
-  const jaExiste = usuarios.find(u => u.email === email)
-  if (!jaExiste) {
-    usuarios.push({ email, senha, data: new Date().toISOString() })
-    fs.writeFileSync(ARQUIVO, JSON.stringify(usuarios, null, 2))
+  const usuario = usuarios.find(u => u.email === email && u.senha === senha)
+  if (!usuario) {
+    return res.status(401).json({ mensagem: 'Email ou senha incorretos.' })
   }
 
   res.json({ mensagem: 'Login realizado com sucesso!', email })
